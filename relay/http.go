@@ -120,6 +120,25 @@ func (h *HTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.URL.Path == "/status" && (r.Method == "GET" || r.Method == "HEAD") {
+		st := make(map[string]map[string]string)
+
+		for _, b := range h.backends {
+			st[b.name] = b.poster.getStats()
+		}
+
+		j, err := json.Marshal(st)
+
+		if err != nil {
+			log.Printf("error: %s", err)
+			jsonResponse(w, http.StatusInternalServerError, "json marshalling failed")
+			return
+		}
+
+		jsonResponse(w, http.StatusOK, fmt.Sprintf("\"status\": %s", string(j)))
+		return
+	}
+
 	if r.URL.Path != "/write" {
 		jsonResponse(w, http.StatusNotFound, "invalid write endpoint")
 		return
